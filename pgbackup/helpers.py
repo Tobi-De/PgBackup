@@ -1,7 +1,7 @@
 import datetime
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Iterable, Optional, Any, List
+from typing import Any, Iterable, List, Optional
 
 import typer
 from pydantic import StrRegexError
@@ -9,10 +9,21 @@ from pydantic import StrRegexError
 from .core.config import settings
 from .core.constants import RESOURCES_FILE_PATH
 from .core.context import AppContext
-from .core.resources import BackupJob, Server, CronExpression, Cron
+from .core.resources import BackupJob, Cron, CronExpression, Server
 from .table import make_table
 
 PLACEHOLDER = "?"
+
+
+def _get_value(values: List[str], index: int):
+    try:
+        return values[index]
+    except IndexError:
+        return " "
+
+
+def _get_row(columns: List[List[str]], index: int):
+    return [_get_value(column, index) for column in columns]
 
 
 def get_app_context() -> AppContext:
@@ -47,41 +58,24 @@ def run_backup_job(backup_job_id: str):
         pass
 
 
-def columns_to_rows(columns: List[List]):
+def columns_to_rows(columns: List[List[str]]) -> List[List[str]]:
     """Take a list of element disposed as list of columns and return a new list
     containing a list of rows
     """
-    pass
+    max_column_size = max([len(column) for column in columns])
+    return [_get_row(columns, index) for index in range(max_column_size)]
 
 
-def _pad_rows(rows: List[List[str]]) -> List[List[str]]:
-    pass
-
-
-def print_table(labels: List[str], columns: List[List[str]]):
+def print_table(labels: List[str], rows: List[List[str]]):
     """
     :param labels: a list os string that represent the header of the table
-    :param columns: a list of all columns, each column associated to a label at the same index
+    :param rows: a list of all columns, each column associated to a label at the same index
     """
-    if len(columns) == 0:
+    if len(rows) == 0:
         typer.secho("No elements to print", fg=typer.colors.CYAN)
         raise typer.Exit(0)
-
-    max_column_size = max([len(column) for column in columns])
-
-    def get_value(values: List[str], index: int):
-        try:
-            return values[index]
-        except IndexError:
-            # a placeholder
-            return "?"
-
-    def get_row(columns: List[List[str]], index: int):
-        return [get_value(column, index) for column in columns]
-
-    rows = [get_row(columns, index) for index in range(max_column_size)]
     table = make_table(rows=rows, labels=labels)
-    table = table.replace("?", " ")  # remove placeholder
+    # table = table.replace(PLACEHOLDER, " ")
     typer.echo(table)
 
 
@@ -106,7 +100,7 @@ def print_list(elements: Iterable[Any]):
 
 
 def print_list_with_prompt(
-        elements: Iterable, confirmation_prompt: bool = False
+    elements: Iterable, confirmation_prompt: bool = False
 ) -> Optional[Any]:
     values = list(elements)
     print_list(values)

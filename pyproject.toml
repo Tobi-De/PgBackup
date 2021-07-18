@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "pgbackup"
 version = "0.1.0"
-description = "A simple cli app to manage postgres backups"
+description = "A cli program to automate your postgresql databases backups"
 authors = ["Tobi-De <tobidegnon@protonmail.com>"]
 
 [tool.poetry.dependencies]

@@ -1,7 +1,7 @@
 import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Any, Optional
+from typing import Any, List, Optional
 
 import boto3
 from pydantic import BaseModel, PrivateAttr

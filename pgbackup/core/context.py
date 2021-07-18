@@ -3,9 +3,9 @@ from typing import Dict, Optional
 from pydantic import BaseModel, Field
 
 from .config import settings
-from .constants import APP_FOLDER, StorageEngine, RESOURCES_FILE_PATH
-from .resources import Server, BackupJob
-from .storages import S3Storage, LocalStorage, BaseStorage
+from .constants import APP_FOLDER, RESOURCES_FILE_PATH, StorageEngine
+from .resources import BackupJob, Server
+from .storages import BaseStorage, LocalStorage, S3Storage
 
 ServerDict = Dict[str, Server]
 BackupJobDict = Dict[str, BackupJob]

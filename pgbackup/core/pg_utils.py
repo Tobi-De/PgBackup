@@ -7,7 +7,7 @@ from typing import List
 
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from pydantic import PostgresDsn, BaseModel
+from pydantic import BaseModel, PostgresDsn
 
 PgConnection = namedtuple("PgConnection", ["connection", "cursor"])
 
