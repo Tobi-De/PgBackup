@@ -1,27 +1,57 @@
+import os
+from pathlib import Path
 from typing import List
 
 import typer
+from rich import Console
 
-from pgbackup.core.resources import Backup
-from pgbackup.helpers import get_app_context, print_table
+from pgbackup.core import create_backup
+from pgbackup.postgresql import PgDumpBinaryConnector, build_postgres_uri
+from pgbackup.ressources import Backup, Server, context
 
 app = typer.Typer()
+console = Console()
+
+
+@app.command(name="list")
+def read(
+    servername: str = typer.Option(default=None),
+    database: str = typer.Option(default=None),
+):
+    """List all available backups"""
+    backup_list: List[Backup] = context.storage.backups()
+    if servername:
+        backup_list = list(filter(lambda b: b.servername == servername, backup_list))
+    if database:
+        backup_list = list(filter(lambda b: b.database == database, backup_list))
+    # TODO print table
 
 
 @app.command()
-def read(
-    server: str = typer.Option(default=None), db: str = typer.Option(default=None)
+def create(
+    servername: str = typer.Option(default=None),
+    database: str = typer.Option(default=None),
+    encrypt: bool = typer.Option(default=False),
+    incwd: bool = typer.Option(default=False, prompt=True),
 ):
-    """List all available backups"""
-    context = get_app_context()
-    backup_list: List[Backup] = context.storage.backup_list()
-    if server:
-        backup_list = list(filter(lambda b: b.server_name == server, backup_list))
-    if db:
-        backup_list = list(filter(lambda b: b.db_name == db, backup_list))
-    labels = ["Server", "Database", "Created at"]
-    rows = [list(backup.dict().values()) for backup in backup_list]
-    print_table(rows=rows, labels=labels)
+    # TODO: create a new instant backup
+    #  list server if not provided, prompt for choice
+    #  list database if not provided, prompt for choice
+    server: Server
+    connector = PgDumpBinaryConnector(
+        build_postgres_uri(server=server, database=database)
+    )  # noqa
+    # TODO Test connection
+    kwargs = {
+        "connector": connector,
+        "filename": Backup(
+            database=database, servername=server.name, encrypted=encrypt
+        ).filename,
+        "encrypt": encrypt,
+    }
+    if incwd:
+        kwargs.update({"destination_folder": Path(os.getcwd())})
+    create_backup(**kwargs)
 
 
 @app.command()
@@ -36,7 +66,6 @@ def restore(
     )
 ):
     """Restore a backup from the available list"""
-    context = get_app_context()
     # test connection to see if db backup exists
 
 

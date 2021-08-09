@@ -6,27 +6,35 @@ from typing import Any, List, Optional
 import boto3
 from pydantic import BaseModel, PrivateAttr
 
-from .resources import Backup
+from .ressources.data import Backup
 
 
 class BaseStorage(BaseModel, ABC):
     @abstractmethod
-    def backup_list(self) -> List[Backup]:
+    def backups(self) -> List[Backup]:
         pass
 
     @abstractmethod
-    def upload(self, file_path: Path):
+    def upload(self, file_path: Path) -> Path:
         pass
 
     @abstractmethod
     def download(self, filename: str, dest_file: Path) -> Path:
         pass
 
+    @abstractmethod
+    def clean_old_backups(self) -> None:
+        pass
+
+    @abstractmethod
+    def delete_backup(self) -> str:
+        pass
+
 
 class LocalStorage(BaseStorage):
     backup_folder: Path
 
-    def backup_list(self) -> List[Backup]:
+    def backups(self) -> List[Backup]:
         backups = [
             Backup.from_filename(filename=f.name)
             for f in self.backup_folder.iterdir()
@@ -34,12 +42,19 @@ class LocalStorage(BaseStorage):
         ]
         return list(filter(lambda x: bool(x), backups))
 
-    def upload(self, file_path: Path):
+    def upload(self, file_path: Path) -> Path:
         shutil.move(str(file_path), str(self.backup_folder))
+        return self.backup_folder.joinpath(file_path.name)
 
     def download(self, filename: str, dest_file: Path) -> Path:
         shutil.move(filename, str(dest_file))
         return dest_file
+
+    def delete_backup(self) -> str:
+        pass
+
+    def clean_old_backups(self) -> None:
+        pass
 
 
 class S3Storage(BaseStorage):
@@ -51,7 +66,7 @@ class S3Storage(BaseStorage):
         super().__init__(**kwargs)
         self._s3_client = boto3.client("s3")
 
-    def backup_list(self) -> List[Backup]:
+    def backups(self) -> List[Backup]:
         kwargs = {"Bucket": self.bucket_name}
         if self.bucket_path:
             kwargs["Prefix"] = self.bucket_path
@@ -60,7 +75,7 @@ class S3Storage(BaseStorage):
         backups = [Backup.from_filename(filename=f) for f in backups]
         return list(filter(lambda x: bool(x), backups))
 
-    def upload(self, file_path: Path):
+    def upload(self, file_path: Path) -> Path:
         dest_file = (
             self.bucket_path + "/" + file_path.name
             if self.bucket_path
@@ -72,6 +87,10 @@ class S3Storage(BaseStorage):
             dest_file,
         )
         file_path.unlink()
+        return Path(f"S3:{self.bucket_name}/{dest_file}")
+
+    def delete_backup(self) -> str:
+        pass
 
     def download(self, filename: str, dest_file: Path) -> Path:
         self._s3_client.download_file(
@@ -80,3 +99,6 @@ class S3Storage(BaseStorage):
             str(dest_file),
         )
         return dest_file
+
+    def clean_old_backups(self) -> None:
+        pass
